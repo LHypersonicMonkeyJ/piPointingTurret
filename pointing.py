@@ -1,8 +1,11 @@
 import os
 import time
+
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from horizons import Horizons
 from az_el import AzEl
 from lktech_motor import LKTECH_Motor
+from bmm150 import * # magnetometer
 
 # Initializations
 horizons = Horizons()
