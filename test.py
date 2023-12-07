@@ -39,10 +39,12 @@ horizons.request_ephemeris(target)
 azimuth_measurement_is_stable = False
 azimuth_buffer = []
 buffer_limit = 100
-while not azimuth_measurement_is_stable and len(azimuth_buffer) < buffer_limit:
+window_size = 5
+threshold = 0.1
+while not azimuth_measurement_is_stable and len(azimuth_buffer) > window_size and len(azimuth_buffer) < buffer_limit:
     device_azimuth = bmm150.get_compass_degree()
     azimuth_buffer.append(device_azimuth)
-    if myutils.is_steady_state(azimuth_buffer, 5, 0.1):
+    if myutils.is_steady_state(azimuth_buffer, window_size, threshold):
         azimuth_measurement_is_stable = True
         print("Device azimuth is: {}".format(device_azimuth))
     time.sleep(0.1)
