@@ -8,7 +8,7 @@ class LKTECH_Motor:
         self.can_id = can_id
         self.bitrate = bitrate
         self.timeout = timeout #unit: millisecond
-        self.can_messaging = CanMessaging(bitrate=self.bitrate)
+        self.can_messaging = CanMessaging.initialize(channel='can0', bitrate=self.bitrate)
         self.current_command = None
         self.data_received = None
         self.command_dict = {
@@ -64,19 +64,23 @@ class LKTECH_Motor:
             self.data_received = self.can_messaging.receive(timeout=self.timeout)
             #self.print_cmd(self.data_received, "self.data_received")
             if self.data_received and self.data_received[0] == self.current_command[0]:
-                self.print_cmd(self.current_command, "Motor received command")
+                #self.print_cmd(self.current_command, "Motor received command")
+                print("success!")
                 return True
             else:
                 self.print_cmd(self.current_command, "Motor failed to respond to command")
+                self.print_cmd(self.data_received, "Motor responded with")
                 return False
         else:
             #print("im here")
             self.data_received = self.can_messaging.receive(timeout=self.timeout)
-            if self.data_received and self.data_received == bytearray(self.current_command):
-                self.print_cmd(self.current_command, "Motor received command")
+            if self.data_received and self.data_received == self.current_command:
+                #self.print_cmd(self.current_command, "Motor received command")
+                print("success!")
                 return True
             else:
                 self.print_cmd(self.current_command, "Motor failed to respond to command")
+                self.print_cmd(self.data_received, "Motor responded with")
                 return False
             
     

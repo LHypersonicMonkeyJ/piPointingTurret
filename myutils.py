@@ -18,6 +18,72 @@ def get_location():
     }
     return location_data
 
+def get_outdoor_weather(longitude=None, latitude=None):
+    # TODO turn this into a class
+    # OpenWeatherMap API key
+    api_key = '05161901758ed5ab3b8bc0a92eca9f37'
+    
+    # API endpoint
+    api_endpoint = "https://api.openweathermap.org/data/2.5/weather"
+    api_endpoint += f"?lat={latitude}&lon={longitude}&appid={api_key}"
+    
+    # Send the request
+    response = requests.get(api_endpoint)
+    
+    # Check if the request was successful
+    if response.status_code == 200:
+        # Get the response data
+        response_data = response.json()
+        
+        print(response_data['main'])
+        # Get the sea level pressure
+        if 'sea_level' in response_data['main']:
+            sealevel_pressure = response_data['main']['sea_level']
+        else:
+            sealevel_pressure = response_data['main']['pressure']
+            
+        # Get the outdoor temperature
+        if 'temp' in response_data['main']:
+            outdoor_temp = response_data['main']['temp']
+            # Convert from Kelvin to Celsius
+            outdoor_temp -= 273.15
+            # Convert from Celsisu to Fahrenheit
+            outdoor_temp = outdoor_temp * 9 / 5 + 32
+        else:
+            outdoor_temp = None
+            
+        # Get the outdoor max temperature
+        if 'temp_max' in response_data['main']:
+            outdoor_max_temp = response_data['main']['temp_max']
+            # Convert from Kelvin to Celsius
+            outdoor_max_temp -= 273.15
+            # Convert from Celsisu to Fahrenheit
+            outdoor_max_temp = outdoor_max_temp * 9 / 5 + 32
+        else:
+            outdoor_max_temp = None
+            
+        # Get the outdoor min temperature
+        if 'temp_min' in response_data['main']:
+            outdoor_min_temp = response_data['main']['temp_min']
+            # Convert from Kelvin to Celsius
+            outdoor_min_temp -= 273.15
+            # Convert from Celsisu to Fahrenheit
+            outdoor_min_temp = outdoor_min_temp * 9 / 5 + 32
+        else:
+            outdoor_min_temp = None
+            
+        # Get the outdoor humidity
+        if 'humidity' in response_data['main']:
+            outdoor_humidity = response_data['main']['humidity']
+        else:
+            outdoor_humidity = None
+            
+        
+        return sealevel_pressure, outdoor_temp, outdoor_max_temp, outdoor_min_temp, outdoor_humidity
+    else:
+        print(f"Error: {response.status_code}")
+        return None
+
 def convert_timezone_delta(delta_str):
     # Parse the input delta string
     delta_hours = int(delta_str[:3])

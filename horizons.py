@@ -7,7 +7,7 @@ import myutils
 from datetime import datetime, timedelta
 
 class Horizons:
-    def __init__(self):
+    def __init__(self, longtiude=None, latitude=None, altitude=None):
         #initialize variables
         self.id_dict = {
             'Sun': '10',
@@ -32,7 +32,7 @@ class Horizons:
         self.utc_offset = current_location['utc_offset']
         self.start_time = datetime.today().strftime('%Y-%b-%d') + ' UT' + myutils.convert_timezone_delta(self.utc_offset)
         self.stop_time = (datetime.today() + timedelta(days=1)).strftime('%Y-%b-%d')
-        self.step_size = '30m'
+        self.step_size = '5m'
 
     def request_ephemeris(self, target_name):
         #get the selected id

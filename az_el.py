@@ -131,3 +131,20 @@ class AzEl:
     
     def get_current_elevation_rate(self):    
         return self.current_elevation_rate
+    
+    def get_daily_azimuth_rate(self):
+        #get sum of the absolute azimuth deltas
+        deltas = [abs(self.data[i+1]['azimuth'] - self.data[i]['azimuth']) for i in range(len(self.data)-1)]
+        delta_sum = sum(deltas)
+        #calcualte rate per second
+        rate_per_second = delta_sum / (24*60*60) 
+        return rate_per_second
+    
+    def get_daily_elevation_rate(self):
+        #get sum of the absolute elevation deltas
+        deltas = [abs(self.data[i+1]['elevation'] - self.data[i]['elevation']) for i in range(len(self.data)-1)]
+        delta_sum = sum(deltas)
+        #calcualte rate per second
+        rate_per_second = delta_sum / (24*60*60) 
+        return rate_per_second
+        
