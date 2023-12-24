@@ -81,7 +81,7 @@ azimuth_measurement_is_stable = False
 azimuth_buffer = []
 buffer_limit = 100
 window_size = 5
-threshold = 0.2
+threshold = 0.5
 
 azimuth_buffer.append(device_azimuth)
 while not azimuth_measurement_is_stable and len(azimuth_buffer) < buffer_limit:

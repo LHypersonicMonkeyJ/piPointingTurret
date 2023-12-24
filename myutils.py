@@ -1,21 +1,39 @@
 import os
 import requests
+import warnings
 
 def get_ip():
     response = requests.get('https://api.ipify.org?format=json').json()
     return response['ip']
 
-def get_location():
+def get_ip_location():
+    positionstack_url = f"http://api.positionstack.com/v1/reverse"
+    api_key = '0de682ee668f615fd563e07c04a8a933'
     ip_address = get_ip()
-    response = requests.get(f'http://ipapi.co/{ip_address}/json/').json()
-    location_data = {
-        'city': response['city'],
-        'region': response['region'],
-        'country': response['country_name'],
-        'latitude': response['latitude'],
-        'longitude': response['longitude'],
-        'utc_offset': response['utc_offset'],
-    }
+    positionstack_url += f"?access_key={api_key}&query={ip_address}"
+    positionstack_url += f"&timezone_module=1"
+
+    response = requests.get(positionstack_url)
+    #print(response.json())
+    if response.status_code == 200:
+        data = response.json()
+        if 'data' in data and data['data'] is not None:
+            response_data = data['data'][0]
+            location_data = {
+                'city':response_data.get('locality', 'Not Available'),
+                'state':response_data.get('region', 'Not Available'),
+                'country':response_data.get('country', 'Not Available'),
+                'latitude':response_data.get('latitude', 'Not Available'),
+                'longitude':response_data.get('longitude', 'Not Available'),
+                'utc_offset':response_data.get('timezone_module', 'Not Available').get('offset_string', 'Not Available'),
+            }
+        else:
+            location_data = None
+            warnings.warn(f"Error: no data found for ip address {ip_address}")
+    else:
+        location_data = None
+        warnings.warn(f"Error: {response.status_code}")
+
     return location_data
 
 def get_outdoor_weather(longitude=None, latitude=None):

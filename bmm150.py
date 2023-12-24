@@ -2,7 +2,7 @@
 
 import serial
 import time
-import smbus
+import smbus2
 import spidev
 import os
 import math
@@ -138,7 +138,7 @@ class bmm150(object):
   __threshold_mode = 2
   def __init__(self, bus):
     if bus != 0:
-      self.i2cbus = smbus.SMBus(bus)
+      self.i2cbus = smbus2.SMBus(bus)
       self.__i2c_spi = self.I2C_MODE
     else:
       self.__i2c_spi = self.SPI_MODE

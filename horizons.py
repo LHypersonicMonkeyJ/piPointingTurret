@@ -25,12 +25,12 @@ class Horizons:
         self.ephemeris_file_path = None
         #define Positions and Time
         self.Earth_id = '399'
-        current_location = myutils.get_location()
+        current_location = myutils.get_ip_location()
         self.longitude = current_location['longitude'] #degrees
         self.latitude = current_location['latitude'] #degrees
         self.altitude = '0' #km
         self.utc_offset = current_location['utc_offset']
-        self.start_time = datetime.today().strftime('%Y-%b-%d') + ' UT' + myutils.convert_timezone_delta(self.utc_offset)
+        self.start_time = datetime.today().strftime('%Y-%b-%d') + ' UT' + self.utc_offset
         self.stop_time = (datetime.today() + timedelta(days=1)).strftime('%Y-%b-%d')
         self.step_size = '5m'
 
