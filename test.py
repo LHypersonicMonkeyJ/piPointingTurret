@@ -58,17 +58,20 @@ horizons.request_ephemeris(target)
 device_azimuth = bmm150.get_compass_degree()
 print("Device azimuth is: {}".format(device_azimuth))
 
-longitude = float(horizons.get_my_location()['longitude'])
-latitude = float(horizons.get_my_location()['latitude'])
-altitude = float(horizons.get_my_location()['altitude'])
+longitude = horizons.get_my_longitude()
+latitude = horizons.get_my_latitude()
+altitude = horizons.get_my_altitude()
 print("Current ip location is: Lat: {:.5f}, Long: {:.5f}, Alt: {:.5f}"
       .format(longitude, latitude, altitude))
-sealevel_pressure, outdoor_temp, outdoor_max_temp, outdoor_min_temp, outdoor_humidity = myutils.get_outdoor_weather(longitude, latitude)
+sealevel_pressure, outdoor_temp, outdoor_max_temp, \
+    outdoor_min_temp, outdoor_humidity, \
+    outdoor_feellike_temp = myutils.get_outdoor_weather(longitude, latitude)
 print("Sealevel pressure: {} hpa".format(sealevel_pressure))
 print("Outdoor temperature: {:.4f} deg F".format(outdoor_temp))
 print("Outdoor max temperature: {:.4f} deg F".format(outdoor_max_temp))
 print("Outdoor min temperature: {:.4f} deg F".format(outdoor_min_temp))
 print("Outdoor humidity: {:.4f} %".format(outdoor_humidity))
+print("Outdoor feel like temperature: {:.4f} deg F".format(outdoor_feellike_temp))
 
 # Initialize azimuth and elevation motor positions
 # Assumming pointing device is sitting in the local plane that is perpendicular
@@ -81,7 +84,7 @@ azimuth_measurement_is_stable = False
 azimuth_buffer = []
 buffer_limit = 100
 window_size = 5
-threshold = 0.5
+threshold = 1.0
 
 azimuth_buffer.append(device_azimuth)
 while not azimuth_measurement_is_stable and len(azimuth_buffer) < buffer_limit:
@@ -98,6 +101,7 @@ if not azimuth_measurement_is_stable:
 initial_elevation = 0
 initial_motor_speed = 360 # degrees per second
 status = motor_az.move_angle_speed(device_azimuth, initial_motor_speed)
+print("line 100, status is: {}".format(status))
 
 # Compute pointing loop delta time in seconds
 az_el = AzEl(horizons.ephemeris_file_path)

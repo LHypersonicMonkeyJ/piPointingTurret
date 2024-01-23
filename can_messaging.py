@@ -25,7 +25,7 @@ class CanMessaging:
             self.bus.send(msg)
             #print out message as hex
             data_string = ' '.join(f'0x{x:02x}' for x in msg.data)
-            print(f"Sent message: id: 0x{hex(msg.arbitration_id)[2:].zfill(4)} cmd: {data_string}")
+            #print(f"Sent message: id: 0x{hex(msg.arbitration_id)[2:].zfill(4)} cmd: {data_string}")
             return True
         except Exception as e:
             print(f"Error sending message: {e}")
@@ -42,7 +42,7 @@ class CanMessaging:
             if msg:
                 #print out message as hex
                 hex_string = ' '.join(f'{x:02x}' for x in msg.data)
-                print(f"Received message: {msg.arbitration_id:x} {hex_string}")
+                #print(f"Received message: {msg.arbitration_id:x} {hex_string}")
                 #convert to 8 bytes data
                 hex_list = [int(f'{byte:02x}', 16) for byte in msg.data]
                 messages.append(hex_list)

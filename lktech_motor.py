@@ -3,8 +3,12 @@ from can_messaging import CanMessaging
 
 #actuator class for LK TECH motor
 class LKTECH_Motor:
-    def __init__(self, can_id, bitrate, timeout=0.3, motor_model=None):
-        self.motor_model = motor_model
+    def __init__(self, can_id, bitrate, timeout=0.3, motor_tag=None):
+        # motor hardware parameters
+        self.motor_tag = motor_tag
+        self.MOTOR_ANGLE_RESOLUTION = 0.4 # degree
+
+        # motor communication parameters
         self.can_id = can_id
         self.bitrate = bitrate
         self.timeout = timeout #unit: millisecond
@@ -348,16 +352,19 @@ class LKTECH_Motor:
     ###############################################################
     def turn_on_motor(self):
         self.current_command = self.command_dict['motor on']
+        print("Turning on motor ({})".format(self.motor_tag))
         self.can_messaging.send(self.can_id, self.current_command)
         return self.motor_responded()
         
     def turn_off_motor(self):
         self.current_command = self.command_dict['motor off']
+        print("Turning off motor ({})".format(self.motor_tag))
         self.can_messaging.send(self.can_id, self.current_command)
         return self.motor_responded()
         
     def stop_motor(self):
         self.current_command = self.command_dict['motor stop']
+        print("Stopping motor ({})".format(self.motor_tag))
         self.can_messaging.send(self.can_id, self.current_command)
         return self.motor_responded()
         
@@ -398,7 +405,10 @@ class LKTECH_Motor:
         ]
         
         #Send command
-        print("Moving Motor to angle: {} degree at speed: {} degree/s".format(angle, max_speed))
+        print("Moving Motor ({}) to angle: {} degree at speed: {} degree/s"
+              .format(self.motor_tag, angle, max_speed))
         self.can_messaging.send(self.can_id, self.current_command)
         status = self.motor_responded(flag_save_data=True)
+    
+        return status
         

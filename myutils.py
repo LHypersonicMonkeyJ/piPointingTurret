@@ -8,6 +8,7 @@ def get_ip():
 
 def get_ip_location():
     positionstack_url = f"http://api.positionstack.com/v1/reverse"
+    openelevation_url = f"https://api.open-elevation.com/api/v1/lookup"
     api_key = '0de682ee668f615fd563e07c04a8a933'
     ip_address = get_ip()
     positionstack_url += f"?access_key={api_key}&query={ip_address}"
@@ -34,6 +35,17 @@ def get_ip_location():
         location_data = None
         warnings.warn(f"Error: {response.status_code}")
 
+    # get altitude from longitude and latitude
+    if location_data['longitude'] != 'Not Available' and location_data['latitude'] != 'Not Available':
+        openelevation_url += f"?locations={location_data['latitude']},{location_data['longitude']}"
+        response = requests.get(openelevation_url)
+        if response.status_code == 200:
+            data = response.json()
+            location_data['altitude'] = data['results'][0]['elevation']
+        else:
+            location_data['altitude'] = 'Not Available'
+            warnings.warn(f"Error: {response.status_code}")
+
     return location_data
 
 def get_outdoor_weather(longitude=None, latitude=None):
@@ -53,7 +65,7 @@ def get_outdoor_weather(longitude=None, latitude=None):
         # Get the response data
         response_data = response.json()
         
-        print(response_data['main'])
+        #print(response_data['main'])
         # Get the sea level pressure
         if 'sea_level' in response_data['main']:
             sealevel_pressure = response_data['main']['sea_level']
@@ -95,9 +107,18 @@ def get_outdoor_weather(longitude=None, latitude=None):
             outdoor_humidity = response_data['main']['humidity']
         else:
             outdoor_humidity = None
+
+        # Get feels like temperature
+        if 'feels_like' in response_data['main']:
+            outdoor_feels_like = response_data['main']['feels_like']
+            # Convert from Kelvin to Celsius
+            outdoor_feels_like -= 273.15
+            # Convert from Celsisu to Fahrenheit
+            outdoor_feels_like = outdoor_feels_like * 9 / 5 + 32
             
         
-        return sealevel_pressure, outdoor_temp, outdoor_max_temp, outdoor_min_temp, outdoor_humidity
+        return sealevel_pressure, outdoor_temp, outdoor_max_temp, \
+                outdoor_min_temp, outdoor_humidity, outdoor_feels_like
     else:
         print(f"Error: {response.status_code}")
         return None
