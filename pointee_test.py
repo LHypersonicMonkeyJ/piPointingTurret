@@ -93,6 +93,14 @@ class PointeeApp(QMainWindow):
         4. Update the target pointing loop Qtimer
         5. Call function to update the target pointing 
         """
+        # change the target button color to dark green
+        targetButtonName = "target_" + target
+        button = self.ui.__getattribute__(targetButtonName)
+        button.setStyleSheet("""background-color: lightgreen; 
+                                border: 1px solid red;
+                             """)
+        button.update()
+
         print("target button clicked: {}".format(target))
 
 def main():
