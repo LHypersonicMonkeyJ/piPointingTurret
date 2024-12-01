@@ -3,10 +3,9 @@ import sys
 import time
 import can
 from datetime import datetime
-from PyQt5 import uic
 from PyQt5.QtCore import Qt, QTimer, QDateTime
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel
-# from pointee import Ui_Pointee
+from pointee import Ui_Pointee
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 from pointing import pointing
@@ -14,19 +13,19 @@ from pointing import pointing
 class PointeeApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        # self.initHardware()
+        self.initHardware()
         self.initUI()
-        # self.initTimer()
-        # self.initButtons()
+        self.initTimer()
+        self.initButtons()
 
     def initHardware(self):
         self.pointing = pointing()
 
     def initUI(self):
         # Create an instance of the generated UI
-        uic.loadUi('qt_gui/Pointee/pointee.ui', self)
-        # self.adjustSize()  # Adjust size based on layout
-        # self.resize(800, 480)
+        self.ui = Ui_Pointee()
+        self.ui.setupUi(self)
+        self.resize(800, 480)
         self.setWindowTitle('Pointee')
         self.showFullScreen()
         self.setWindowFlag(Qt.FramelessWindowHint)
@@ -59,7 +58,7 @@ class PointeeApp(QMainWindow):
         # if the button is clicked, change the button color to green
         for target in self.pointing.available_targets:
             targetButtonName = "target_" + target
-            self.__getattribute__(targetButtonName).clicked.connect(lambda _, target=target: self.target_button_on_click(target))
+            self.ui.__getattribute__(targetButtonName).clicked.connect(lambda _, target=target: self.target_button_on_click(target))
 
     #===========================================================================
     # define update functions (fastest to slowest)
@@ -71,11 +70,11 @@ class PointeeApp(QMainWindow):
 
         # Update
         # update the room temperature label
-        self.label_roomTemp.setText("{:.1f} °F".format(current_room_temp))
+        self.ui.label_roomTemp.setText("{:.1f} °F".format(current_room_temp))
 
     def update_current_time(self):
         current_time = QDateTime.currentDateTime()
-        self.label_currentTime.setText(current_time.toString("hh:mm:ss"))
+        self.ui.label_currentTime.setText(current_time.toString("hh:mm:ss"))
 
     def update_outdoor_current_weather(self):
         pass
@@ -96,7 +95,7 @@ class PointeeApp(QMainWindow):
         """
         # change the target button color to dark green
         targetButtonName = "target_" + target
-        button = self.__getattribute__(targetButtonName)
+        button = self.ui.__getattribute__(targetButtonName)
         button.setStyleSheet("""background-color: lightgreen; 
                                 border: 1px solid red;
                              """)
