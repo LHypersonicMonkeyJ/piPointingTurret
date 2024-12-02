@@ -265,6 +265,13 @@ class pointing():
             print("ERROR: Failed to move elevation motor to target position")
             return False
         return True
+
+    def shutdown(self):
+        self.motor_az.turn_off_motor()
+        self.motor_el.turn_off_motor()
+        self.bmm150.set_operation_mode(self.bmm150.POWERMODE_SUSPEND)
+        print("Pointing system shutdown.")
+        return True
         
 
 

@@ -1,3 +1,4 @@
+import signal
 import os
 import sys
 import time
@@ -14,10 +15,10 @@ from pointing import pointing
 class PointeeApp(QMainWindow):
     def __init__(self):
         super().__init__()
-        # self.initHardware()
+        self.initHardware()
         self.initUI()
-        # self.initTimer()
-        # self.initButtons()
+        self.initTimer()
+        self.initButtons()
 
     def initHardware(self):
         self.pointing = pointing()
@@ -25,8 +26,8 @@ class PointeeApp(QMainWindow):
     def initUI(self):
         # Create an instance of the generated UI
         uic.loadUi('qt_gui/Pointee/pointee.ui', self)
-        # self.adjustSize()  # Adjust size based on layout
-        # self.resize(800, 480)
+        self.adjustSize()  # Adjust size based on layout
+        self.resize(800, 480)
         self.setWindowTitle('Pointee')
         self.showFullScreen()
         self.setWindowFlag(Qt.FramelessWindowHint)
@@ -104,9 +105,40 @@ class PointeeApp(QMainWindow):
 
         print("target button clicked: {}".format(target))
 
+    def closeEvent(self, event):
+        """ Override closeEvent to perform actions on exit """
+        print("Closing the application...")
+        # Perform cleanup or other tasks here
+        self.cleanup()
+        event.accept()
+
+    def cleanup(self):
+        """ Perform cleanup tasks """
+        print("Performing cleanup...")
+        # Stop timers if necessary
+        self.timer_current_time.stop()
+        self.timer_room_weather.stop()
+        # Hardware shutdown process
+        self.pointing.shutdown()
+
+def handle_sigint(signal, frame):
+    # print("SIGINT received. Cleaning up...")
+    QApplication.quit()  # Gracefully quit the application
+
 def main():
+    # Set up the signal handler
+    signal.signal(signal.SIGINT, handle_sigint)
+
     app = QApplication(sys.argv)
     window = PointeeApp()
+
+    # Ensure cleanup runs on both window close and Ctrl-C
+    def on_exit():
+        print("Exiting application...")
+        window.cleanup()
+
+    app.aboutToQuit.connect(on_exit)  # Ensure cleanup on application quit
+
     window.show()
     sys.exit(app.exec_())
     
