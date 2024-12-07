@@ -162,7 +162,12 @@ class pointing():
         self.outdoor_min_temp, \
         self.outdoor_humidity, \
         self.outdoor_feellike_temp = myutils.get_outdoor_weather(self.longitude, self.latitude)
-    
+
+        if self.outdoor_temp is None:
+            return False
+        else:
+            return True
+
     def _validate_target(self, target):
         if target in self.available_targets:
             self.target = target
@@ -174,7 +179,7 @@ class pointing():
     #--------------------------------------------------------------------
     # getters and setters
     # get outdoor weather from ip address (should not call this too often)
-    def get_outdoor_temperature(self):
+    def get_outdoor_temp(self):
         # get outdoor temperature from ip address
         return self.outdoor_temp
     
@@ -193,6 +198,10 @@ class pointing():
     def get_outdoor_min_temp(self):
         # get outdoor min temperature from ip address
         return self.outdoor_min_temp
+
+    def get_outdoor_feellike_temp(self):
+        # get outdoor feels like temperature from ip address
+        return self.outdoor_feellike_temp
         
     
     # get indoor weather

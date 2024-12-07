@@ -5,7 +5,7 @@ import time
 import can
 from datetime import datetime
 from PyQt5 import uic
-from PyQt5.QtCore import Qt, QTimer, QDateTime
+from PyQt5.QtCore import Qt, QTime, QTimer, QDateTime
 from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel
 # from pointee import Ui_Pointee
 
@@ -38,6 +38,7 @@ class PointeeApp(QMainWindow):
         self.timer_current_time = QTimer(self)
         self.timer_current_time.timeout.connect(self.update_current_time)
         self.timer_current_time.start(1000)
+        self.update_current_time()
 
         # default timer for upating target pointing (1 second)
         # this timer interval can be changed depends on selected pointing target
@@ -47,12 +48,30 @@ class PointeeApp(QMainWindow):
         #self.timer_room_weather.setTimerType(Qt.PreciseTimer)
         self.timer_room_weather.timeout.connect(self.update_current_room_weather)
         self.timer_room_weather.start(20000)
+        self.update_current_room_weather()
 
-        # timer for updating current outdoor weather (15 minute)
+        # timer for updating current outdoor weather (60 minute)
+        self.timer_outdoor_weather = QTimer(self)
+        self.timer_outdoor_weather.timeout.connect(self.update_current_outdoor_weather)
+        self.timer_outdoor_weather.start(3600000)
+        self.update_current_outdoor_weather()
 
-        # timer for updating daily outdoor weather (midnight)
+        # Timer for updating date at midnight
+        self.timer_date = QTimer(self)
+        self.timer_date.timeout.connect(self.update_date)
 
-        # timer for updating date (midnight)
+        # Calculate time until midnight
+        current_time = QTime.currentTime()
+        midnight = QTime(0, 0)
+        time_until_midnight = current_time.msecsTo(midnight) if current_time < midnight else (24 * 60 * 60 * 1000) - current_time.msecsTo(midnight)
+        
+        # Start the timer with the time until midnight
+        self.timer_date.start(time_until_midnight)
+        
+        # After midnight, reset the timer to trigger every 24 hours
+        self.timer_date.timeout.connect(lambda: self.timer_date.start(86400000))
+        
+        self.update_date()
 
     def initButtons(self):
         """ Initialize buttons """
@@ -70,22 +89,35 @@ class PointeeApp(QMainWindow):
         current_room_humidity = self.pointing.get_indoor_humidity()
         current_room_pressure = self.pointing.get_indoor_pressure()
 
-        # Update
-        # update the room temperature label
+        # Update labels
         self.label_roomTemp.setText("{:.1f} °F".format(current_room_temp))
+        self.label_roomHumidity.setText("{:.1f} %".format(current_room_humidity))
+
+    def update_current_outdoor_weather(self):
+        if not self.pointing.update_outdoor_weather():
+            print("Failed to update outdoor weather.")
+            return
+
+        outdoor_sealevel_pressure = self.pointing.get_outdoor_sealevel_pressure()
+        outdoor_temp = self.pointing.get_outdoor_temp()
+        outdoor_max_temp = self.pointing.get_outdoor_max_temp()
+        outdoor_min_temp = self.pointing.get_outdoor_min_temp()
+        outdoor_humidity = self.pointing.get_outdoor_humidity()
+        outdoor_feellike_temp = self.pointing.get_outdoor_feellike_temp()
+
+        # Update labels
+        self.label_outdoorTemp.setText("{:.1f} °F".format(outdoor_temp))
+        self.label_outdoorMaxTemp.setText("{:.1f} °F".format(outdoor_max_temp))
+        self.label_outdoorMinTemp.setText("{:.1f} °F".format(outdoor_min_temp))
+        self.label_outdoorHumidity.setText("{:.1f} %".format(outdoor_humidity))
 
     def update_current_time(self):
         current_time = QDateTime.currentDateTime()
         self.label_currentTime.setText(current_time.toString("hh:mm:ss"))
 
-    def update_outdoor_current_weather(self):
-        pass
-
-    def update_outdoor_daily_weather(self):
-        pass
-
     def update_date(self):
-        pass
+        current_date = QDateTime.currentDateTime()
+        self.label_currentDate.setText(current_date.toString("MM/dd/yyyy"))
 
     def target_button_on_click(self, target):
         """ Update the pointing target
