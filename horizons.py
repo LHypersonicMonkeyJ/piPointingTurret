@@ -12,7 +12,7 @@ class Horizons:
         self.id_dict = {
             'Sun': '10',
             'Moon': '301',
-            'ISS': '-125544',
+            'Iss': '-125544',
             'Mercury': '199',
             'Venus': '299',
             'Earth': '399',
@@ -52,6 +52,7 @@ class Horizons:
     def request_ephemeris(self, target_name):
         #get the selected id
         target_key = target_name.lower().capitalize()
+        print("target_key: {}".format(target_key))
         if target_key in self.id_dict:
             selected_id = self.id_dict[target_key]
         else:
