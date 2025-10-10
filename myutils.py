@@ -154,7 +154,7 @@ def remove_all_files_in_folder(folder_path):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def is_steady_state(data, window_size, threshold):
+def is_steady_state(data, window_size, threshold, stead_state_count):
     """
     Check if a measurement has reached its steady state using a moving average.
 
@@ -162,6 +162,7 @@ def is_steady_state(data, window_size, threshold):
     - data: List or numpy array representing the time-series data.
     - window_size: The size of the moving average window.
     - threshold: The threshold for determining steady state.
+    - stead_state_count: The number of consecutive points within the threshold to confirm steady state.
 
     Returns:
     - True if the data has reached steady state, False otherwise.
@@ -172,8 +173,21 @@ def is_steady_state(data, window_size, threshold):
     moving_avg = [sum(data[i:i + window_size]) / window_size for i in range(len(data) - window_size + 1)]
 
     # Check for steady state
+    current_steady_count = 0
     for i in range(len(moving_avg) - 1):
+        diff = abs(moving_avg[i + 1] - moving_avg[i])
         if abs(moving_avg[i + 1] - moving_avg[i]) > threshold:
+            if current_steady_count > 0:
+                current_steady_count = 0
+            continue
+        else:
+            current_steady_count += 1
+
+        # steady state decision
+        if current_steady_count >= stead_state_count:
+            return True
+        if i == len(moving_avg) - 2:
             return False
 
-    return True
+    # End of data reached without confirming steady state
+    return False

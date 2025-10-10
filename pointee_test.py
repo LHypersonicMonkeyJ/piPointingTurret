@@ -6,7 +6,8 @@ import can
 from datetime import datetime
 from PyQt5 import uic
 from PyQt5.QtCore import Qt, QTime, QTimer, QDateTime
-from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QPushButton, QLabel
+from PyQt5.QtWidgets import QApplication, QMainWindow, QWidget, QLabel
+from PyQt5.QtWidgets import QPushButton, QButtonGroup
 # from pointee import Ui_Pointee
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
@@ -77,9 +78,26 @@ class PointeeApp(QMainWindow):
         """ Initialize buttons """
         # get the available pointing targets from the pointing class
         # if the button is clicked, change the button color to green
+        self.group = QButtonGroup(self)
+        self.group.setExclusive(True)  # Only one button can be checked at a time
+
+        qss = """
+            QPushButton:checked {
+                background-color: lightgreen;
+                border: 1px solid red;
+            }
+            QPushButton {
+                background-color: white;
+                border: 1px solid transparent;
+            }
+        """
+
         for target in self.pointing.available_targets:
-            targetButtonName = "target_" + target
-            self.__getattribute__(targetButtonName).clicked.connect(lambda _, target=target: self.target_button_on_click(target))
+            btn = getattr(self, "target_" + target)
+            btn.setCheckable(True)
+            btn.setStyleSheet(qss)  # apply per button only
+            self.group.addButton(btn)
+            btn.clicked.connect(lambda _, target=target: self.target_button_on_click(target))
 
     #===========================================================================
     # define update functions (fastest to slowest)
@@ -128,14 +146,40 @@ class PointeeApp(QMainWindow):
         5. Call function to update the target pointing 
         """
         # change the target button color to dark green
-        targetButtonName = "target_" + target
-        button = self.__getattribute__(targetButtonName)
-        button.setStyleSheet("""background-color: lightgreen; 
-                                border: 1px solid red;
-                             """)
-        button.update()
+        # targetButtonName = "target_" + target
+        # button = self.__getattribute__(targetButtonName)
+        # button.setStyleSheet("""background-color: lightgreen; 
+        #                         border: 1px solid red;
+        #                      """)
+        # button.update()
+
+        self.pointing.current_target = target
 
         print("target button clicked: {}".format(target))
+        print("current target: {}".format(self.pointing.current_target))
+
+        # if target != self.pointing.current_target:
+        #     self.pointing.initialize_target(target)
+            # # request target ephemeris
+            # if not self.pointing.request_target_ephemeris(target):
+            #     print("Failed to get target ephemeris.")
+            #     return
+
+            # # calculate the target pointing loop delta time
+            # delta_time = self.pointing.calculate_target_pointing_loop_delta_time()
+            # print("Target pointing loop delta time: {} ms".format(delta_time))
+
+    #         # update the target pointing loop Qtimer
+    #         self.timer_target_pointing = QTimer(self)
+    #         # the function call to update the motor position is in the pointing class
+    #         # which is called "point_to_target(self, target_azimuth, target_elevation, az_speed, el_speed)"
+    #         self.timer_target_pointing.timeout.connect(self.pointing.update_pointing)
+    #         self.timer_target_pointing.start(delta_time)
+    #         # update the current target
+    #         self.pointing.current_target = target
+    #         print("Current target updated to: {}".format(self.pointing.current_target))
+    # #===========================================================================
+
 
     def closeEvent(self, event):
         """ Override closeEvent to perform actions on exit """

@@ -29,7 +29,8 @@ class pointing():
         self.bmm150_buffer_limit = 100 # buffer limit
         self.bmm150_window_size = 5 # window size for moving average
         self.bmm150_exclude_size = 3 # window_size = 5, so exclude the first 3 readings
-        self.bmm150_threshold = 0.75 # stable reading threshold
+        self.bmm150_steady_count = 3 # moving average diff within threshold for this many times
+        self.bmm150_threshold = 0.2 # [degree] stable reading threshold
 
         # initialize Horizons
         self.horizons = Horizons()
@@ -82,7 +83,7 @@ class pointing():
             print("Device azimuth measurement: {}".format(device_azimuth))
             self.bmm150_buffer.append(device_azimuth)
             if len(self.bmm150_buffer) > self.bmm150_window_size:
-                if myutils.is_steady_state(self.bmm150_buffer, self.bmm150_window_size, self.bmm150_threshold):
+                if myutils.is_steady_state(self.bmm150_buffer, self.bmm150_window_size, self.bmm150_threshold, self.bmm150_steady_count):
                     flag_bmm150_stable = True
                     # Get the average reading of the current buffer exclude the first self.bmm150_exclude_size readings
                     excluded_bmm150_buffer = self.bmm150_buffer[self.bmm150_exclude_size:]
@@ -240,8 +241,9 @@ class pointing():
 
         # Initialize az_el object
         self.az_el = AzEl(self.horisons.ephemeris_file_path)
-        
-        return self.compute_pointing_loop()
+
+        # Compute pointing loop delta time
+        self.compute_pointing_loop()
 
     # Compute pointing loop delta time in seconds
     # TODO: also compute the az and el motor pointing speed
