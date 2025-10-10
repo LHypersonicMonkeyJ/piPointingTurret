@@ -20,11 +20,14 @@ class pointing():
         self.targets_already_selected = dict() #key is target, value is data valid date
         self.current_target = None
         self.az_el = None
+        self.utc_offset = "-5"
 
         # device variables
         self.device_azimuth = 0 # this will be udpated in the _initialize_sensors function
         self.device_elevation = 0
+        self.hard_reset_motor_zero_positions = False # set motor zero positions in ROM
         self.initial_motor_speed = 360 # degrees per second
+        self.motor_directions = [1, -1] # [azimuth, elevation], 1 for normal, -1 for reverse
         self.bmm150_buffer = [] # buffer to store initial bme280 readings
         self.bmm150_buffer_limit = 100 # buffer limit
         self.bmm150_window_size = 5 # window size for moving average
@@ -47,7 +50,8 @@ class pointing():
         # initialize motors
         self._initialize_motors(initial_azimuth = self.device_azimuth,
                                 initial_elevation = self.device_elevation, 
-                                initial_speed = self.initial_motor_speed)
+                                initial_speed = self.initial_motor_speed,
+                                directions = self.motor_directions)
     
     def _initialize_weather(self):
         self.room_temp = None
@@ -113,7 +117,7 @@ class pointing():
         print("BME280 is ready.")
 
 
-    def _initialize_motors(self, initial_azimuth, initial_elevation, initial_speed):
+    def _initialize_motors(self, initial_azimuth, initial_elevation, initial_speed, directions):
         # MS4010 Motor
         MOTOR_ANGLE_RESOLUTION = 0.4
         MOTOR_ANGLE_MIN = 0
@@ -121,9 +125,13 @@ class pointing():
         BITRATE = 250000
         TIMEOUT = 3
         self.motor_az = LKTECH_Motor(can_id=0x0141, bitrate=BITRATE, 
-                                     timeout=TIMEOUT, motor_tag='MS4010-CAN_az') #timeout unit is ms
+                                     timeout=TIMEOUT, motor_tag='MS4010-CAN_az', direction=directions[0]) #timeout unit is ms
         self.motor_el = LKTECH_Motor(can_id=0x0142, bitrate=BITRATE,
-                                     timeout=TIMEOUT, motor_tag='MS4010-CAN_el')
+                                     timeout=TIMEOUT, motor_tag='MS4010-CAN_el', direction=directions[1])
+
+        if self.hard_reset_motor_zero_positions:
+            self.motor_az.write_current_pos_as_zero_pos_in_ROM()
+            self.motor_el.write_current_pos_as_zero_pos_in_ROM()
         # 2 second idle time
         #time.sleep(5)
 
@@ -170,6 +178,7 @@ class pointing():
             return True
 
     def _validate_target(self, target):
+        print("self.available_targets: {}".format(self.available_targets))
         if target in self.available_targets:
             self.target = target
             return True
@@ -223,6 +232,8 @@ class pointing():
             warnings.warn("Invalid target: {}".format(target))
             return False
         
+        self.current_target = target
+
         # check to see if the target has already been initialized
         # get current valid time
         current_valid_time = datetime.today().strftime('%Y-%b-%d') + ' UT' + self.utc_offset
@@ -235,15 +246,16 @@ class pointing():
                 target_valid_date = self.horizons.request_ephemeris(target)
                 self.targets_already_selected[target] = target_valid_date
         else:
+            print("getting new ephemeris for target: {}".format(target))
             # target not initialized yet. Need to call for new ephemeris
             target_valid_date = self.horizons.request_ephemeris(target)
             self.targets_already_selected[target] = target_valid_date
 
         # Initialize az_el object
-        self.az_el = AzEl(self.horisons.ephemeris_file_path)
+        self.az_el = AzEl(self.horizons.ephemeris_file_path)
 
         # Compute pointing loop delta time
-        self.compute_pointing_loop()
+        return self.compute_pointing_loop()
 
     # Compute pointing loop delta time in seconds
     # TODO: also compute the az and el motor pointing speed

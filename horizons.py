@@ -11,6 +11,8 @@ class Horizons:
         #initialize variables
         self.id_dict = {
             'Sun': '10',
+            'Moon': '301',
+            'ISS': '-125544',
             'Mercury': '199',
             'Venus': '299',
             'Earth': '399',
@@ -65,14 +67,15 @@ class Horizons:
             print("File already exists: {}".format(self.ephemeris_file_path))
         else:
             #TODO: delete all ephemeris files from a different day
+            print("horizons.py: Deleting all files in ephemeris folder")
             myutils.remove_all_files_in_folder(os.path.join(os.getcwd(), 'ephemeris'))
             self.flag_create_file = True
             print("Creating file: {}".format(self.ephemeris_file_path))
 
         #build url commands:
-        print("self.longitude: {:.5f}".format(self.longitude))
-        print("self.latitude: {:.5f}".format(self.latitude))
-        print("self.altitude: {:.5f}".format(self.altitude))
+        print("My longitude: {:.5f}".format(self.longitude))
+        print("My latitude: {:.5f}".format(self.latitude))
+        print("My altitude: {:.5f}".format(self.altitude))
         self.horizons_url += "?format=json&EPHEM_TYPE=OBSERVER&OBJ_DATA=NO"
         self.horizons_url += "&COMMAND='{}'&START_TIME='{}'&STOP_TIME='{}'&STEP_SIZE='{}'".format(selected_id, self.start_time, self.stop_time, self.step_size)
         self.horizons_url += "&CENTER='coord @ {}'&SITE_COORD='{:.5f},{:.5f},{:.5f}'".format(self.Earth_id, self.longitude, self.latitude, self.altitude*1e-3) #note: altitude is in km
@@ -80,6 +83,9 @@ class Horizons:
 
         #request data
         response = requests.get(self.horizons_url)
+
+        # reset url
+        self.horizons_url = 'https://ssd.jpl.nasa.gov/api/horizons.api'
         try:
             data = json.loads(response.text)
         except ValueError:

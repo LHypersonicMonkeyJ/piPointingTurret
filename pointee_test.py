@@ -139,35 +139,35 @@ class PointeeApp(QMainWindow):
 
     def target_button_on_click(self, target):
         """ Update the pointing target
-        1. Change the target button color to green
+        1. Save the selected target
         2. Request target ephemeris
         3. Calculate the target pointing loop delta time
         4. Update the target pointing loop Qtimer
         5. Call function to update the target pointing 
         """
-        # change the target button color to dark green
-        # targetButtonName = "target_" + target
-        # button = self.__getattribute__(targetButtonName)
-        # button.setStyleSheet("""background-color: lightgreen; 
-        #                         border: 1px solid red;
-        #                      """)
-        # button.update()
 
-        self.pointing.current_target = target
+        print("current target: {}".format(target))
 
-        print("target button clicked: {}".format(target))
-        print("current target: {}".format(self.pointing.current_target))
+        if target != self.pointing.current_target:
+            # request target ephemeris and compute delta time
+            delta_time = self.pointing.initialize_target(target)
 
-        # if target != self.pointing.current_target:
-        #     self.pointing.initialize_target(target)
-            # # request target ephemeris
-            # if not self.pointing.request_target_ephemeris(target):
-            #     print("Failed to get target ephemeris.")
-            #     return
+            # testing
+            # Get current azimuth and elevation from Horizons
+            self.pointing.az_el.get_az_el(datetime.now())
+            print("Current azimuth: {:.2f}, elevation: {:.2f}".format(
+                self.pointing.az_el.current_azimuth,
+                self.pointing.az_el.current_elevation))
+            print("Current azimuth rate: {:.2f}, elevation rate: {:.2f}".format(
+                self.pointing.az_el.current_azimuth_rate,
+                self.pointing.az_el.current_elevation_rate))
 
-            # # calculate the target pointing loop delta time
-            # delta_time = self.pointing.calculate_target_pointing_loop_delta_time()
-            # print("Target pointing loop delta time: {} ms".format(delta_time))
+            # point motors to current azimuth and elevation
+            self.pointing.point_to_target(
+                self.pointing.az_el.current_azimuth,
+                self.pointing.az_el.current_elevation,
+                abs(self.pointing.az_el.current_azimuth_rate)*1.5,
+                abs(self.pointing.az_el.current_elevation_rate)*1.5)
 
     #         # update the target pointing loop Qtimer
     #         self.timer_target_pointing = QTimer(self)

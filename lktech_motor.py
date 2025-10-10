@@ -3,10 +3,11 @@ from can_messaging import CanMessaging
 
 #actuator class for LK TECH motor
 class LKTECH_Motor:
-    def __init__(self, can_id, bitrate, timeout=0.3, motor_tag=None):
+    def __init__(self, can_id, bitrate, timeout=0.3, motor_tag=None, direction=1):
         # motor hardware parameters
         self.motor_tag = motor_tag
         self.MOTOR_ANGLE_RESOLUTION = 0.4 # degree
+        self.direction = direction #1 or -1
 
         # motor communication parameters
         self.can_id = can_id
@@ -264,7 +265,7 @@ class LKTECH_Motor:
             angle = angle_read * 0.01
         else:
             angle = None
-        return angle
+        return angle*self.direction
         
     def read_single_angle(self):
         #angle reading is in range 0 to 36000, increment by 1
@@ -281,7 +282,7 @@ class LKTECH_Motor:
         
         #convert angle reading to angle in degrees
         angle = angle_read * 0.01
-        return angle
+        return angle*self.direction
     
     def write_zero_pos_in_RAM(self):
         #This command clear motor multi turn and single turn data and set current position
@@ -373,6 +374,8 @@ class LKTECH_Motor:
         #motor spin direction is determined by the difference between target position and current position.
         #maxSpeed limit the max speed, it is uint16_t, corresponding actual speed is 1dps/LSB, 
         #i.e. 360 corresponding 360dps.
+
+        angle = angle * self.direction
         
         #Convert angle to angle command and speed to speed command
         angle_cmd = round(angle * 36000 / 360)
