@@ -139,20 +139,30 @@ class PointeeApp(QMainWindow):
 
     def target_button_on_click(self, target):
         """ Update the pointing target
-        1. Save the selected target
-        2. Request target ephemeris
-        3. Calculate the target pointing loop delta time
-        4. Update the target pointing loop Qtimer
-        5. Call function to update the target pointing 
+        1) Save the selected target
+        2) Request target ephemeris
+        3) Calculate the target pointing loop delta time
+        4) Update / restart the target pointing QTimer
+        5) Do one immediate point_to_target() to move motors now
         """
 
         print("current target: {}".format(target))
 
-        if target != self.pointing.current_target:
-            # request target ephemeris and compute delta time
+        # If same target is clicked again, ignore (already selected)
+        if target == self.pointing.current_target:
+            print("[GUI] Same target re-selected; no re-initialization needed.")
+            return
+        
+        try:
+            # Initialize target: Fetch ephemeris if needed and trun loop period (ms)
             delta_time = self.pointing.initialize_target(target)
 
-            # testing
+            # Basic sanity check for delta_time
+            if delta_time is None or delta_time <= 0:
+                print("[WARN] Initialize_target returned None; falling back to 1000 ms.")
+                delta_time = 1000  # Default to 1 second if invalid
+            delta_time = int(max((50, min((3600000, delta_time)))))  # Clamp between 50 ms and 1 hour
+
             # Get current azimuth and elevation from Horizons
             self.pointing.az_el.get_az_el(datetime.now())
             print("Current azimuth: {:.2f}, elevation: {:.2f}".format(
@@ -161,25 +171,38 @@ class PointeeApp(QMainWindow):
             print("Current azimuth rate: {:.2f}, elevation rate: {:.2f}".format(
                 self.pointing.az_el.current_azimuth_rate,
                 self.pointing.az_el.current_elevation_rate))
-
-            # point motors to current azimuth and elevation
+            
+            # First immediate move to current azimuth and elevation, using initial motor speed
+            v0 = abs(self.pointing.initial_motor_speed)
             self.pointing.point_to_target(
                 self.pointing.az_el.current_azimuth,
                 self.pointing.az_el.current_elevation,
-                abs(self.pointing.az_el.current_azimuth_rate)*1.5,
-                abs(self.pointing.az_el.current_elevation_rate)*1.5)
+                v0,
+                v0)
+            
+            # (Re)start periodic poitning updates
+            # Stop previous timer if it exists
+            if hasattr(self, "timer_target_pointing") and self.timer_target_pointing is not None:
+                try:
+                    self.timer_target_pointing.stop()
+                    self.timer_target_pointing.timeout.disconnect()
+                except Exception as e:
+                    print(f"[WARN] Exception stopping previous timer: {e}")
 
-    #         # update the target pointing loop Qtimer
-    #         self.timer_target_pointing = QTimer(self)
-    #         # the function call to update the motor position is in the pointing class
-    #         # which is called "point_to_target(self, target_azimuth, target_elevation, az_speed, el_speed)"
-    #         self.timer_target_pointing.timeout.connect(self.pointing.update_pointing)
-    #         self.timer_target_pointing.start(delta_time)
-    #         # update the current target
-    #         self.pointing.current_target = target
-    #         print("Current target updated to: {}".format(self.pointing.current_target))
-    # #===========================================================================
+            # Create 9 or recreate) the timer
+            self.timer_target_pointing = QTimer(self)
+            # If you want tighter scheduling jitter:
+            # self.timer_target_pointing.setTimerType(Qt.PreciseTimer)
+            self.timer_target_pointing.timeout.connect(self.pointing.update_pointing)
+            self.timer_target_pointing.start(delta_time)
 
+            # Save the selected target only after successful init
+            self.pointing.current_target = target
+            print("Current target updated to: {}".format(self.pointing.current_target))
+
+        except Exception as e:
+            # Graceful failure path (keep old target/timer running)
+            print(f"[ERROR] Failed to initialize target '{target}': {e}")
 
     def closeEvent(self, event):
         """ Override closeEvent to perform actions on exit """

@@ -17,7 +17,7 @@ from bmm150 import * # magnetometer
 class pointing():
     def __init__(self):
         self.available_targets = ['Sun', 'Moon', 'Mars', 'ISS']
-        self.targets_already_selected = dict() #key is target, value is data valid date
+        self.existing_target_valid_date = dict() #key is target, value is data valid date
         self.current_target = None
         self.az_el = None
         self.utc_offset = "-5"
@@ -26,7 +26,7 @@ class pointing():
         self.device_azimuth = 0 # this will be udpated in the _initialize_sensors function
         self.device_elevation = 0
         self.hard_reset_motor_zero_positions = False # set motor zero positions in ROM
-        self.initial_motor_speed = 360 # degrees per second
+        self.initial_motor_speed = 180 # degrees per second
         self.motor_directions = [1, -1] # [azimuth, elevation], 1 for normal, -1 for reverse
         self.bmm150_buffer = [] # buffer to store initial bme280 readings
         self.bmm150_buffer_limit = 100 # buffer limit
@@ -237,19 +237,19 @@ class pointing():
         # check to see if the target has already been initialized
         # get current valid time
         current_valid_time = datetime.today().strftime('%Y-%b-%d') + ' UT' + self.utc_offset
-        if target in self.targets_already_selected.keys():
-            if current_valid_time == self.targets_already_selected[target]:
+        if target in self.existing_target_valid_date.keys():
+            if current_valid_time == self.existing_target_valid_date[target]:
                 # if time is valid then do nothing
                 pass
             else:
                 # if time is not valid, request new empemeris data and update the target valid time
                 target_valid_date = self.horizons.request_ephemeris(target)
-                self.targets_already_selected[target] = target_valid_date
+                self.existing_target_valid_date[target] = target_valid_date
         else:
             print("getting new ephemeris for target: {}".format(target))
             # target not initialized yet. Need to call for new ephemeris
             target_valid_date = self.horizons.request_ephemeris(target)
-            self.targets_already_selected[target] = target_valid_date
+            self.existing_target_valid_date[target] = target_valid_date
 
         # Initialize az_el object
         self.az_el = AzEl(self.horizons.ephemeris_file_path)
@@ -287,6 +287,36 @@ class pointing():
         if not status:
             print("ERROR: Failed to move elevation motor to target position")
             return False
+        return True
+    
+    def update_pointing(self):
+        if self.current_target is None:
+            print("No target selected.")
+            return False
+        
+        if self.az_el is None:
+            print("AzEl object not initialized.")
+            return False
+
+        # Get current azimuth and elevation from Horizons
+        self.az_el.get_az_el(datetime.now())
+        print("Current azimuth: {:.2f}, elevation: {:.2f}".format(
+            self.az_el.current_azimuth,
+            self.az_el.current_elevation))
+        print("Current azimuth rate: {:.2f}, elevation rate: {:.2f}".format(
+            self.az_el.current_azimuth_rate,
+            self.az_el.current_elevation_rate))
+
+        # point motors to current azimuth and elevation
+        status = self.point_to_target(
+            self.az_el.current_azimuth,
+            self.az_el.current_elevation,
+            abs(self.az_el.current_azimuth_rate)*1.5,
+            abs(self.az_el.current_elevation_rate)*1.5)
+        if not status:
+            print("ERROR: Failed to point to target.")
+            return False
+
         return True
 
     def shutdown(self):

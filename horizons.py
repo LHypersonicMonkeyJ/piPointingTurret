@@ -25,6 +25,8 @@ class Horizons:
         self.flag_create_file = False
         self.horizons_url = 'https://ssd.jpl.nasa.gov/api/horizons.api'
         self.ephemeris_file_path = None
+        self.ephemeris_file_set = set() # a set to keep track of existing ephemeris files
+
         #define Positions and Time
         self.Earth_id = '399'
         current_location = myutils.get_ip_location()
@@ -60,16 +62,27 @@ class Horizons:
             return
 
         #create output file
-        output_file_name = 'id'+selected_id + '_' + datetime.today().strftime('%Y-%b-%d') + '.txt'
+        today_str = datetime.today().strftime('%Y-%b-%d')
+        output_file_name = 'id'+selected_id + '_' + today_str + '.txt'
         self.ephemeris_file_path = os.path.join(os.getcwd(), 'ephemeris', output_file_name)
         if os.path.exists(self.ephemeris_file_path):
-            myutils.delete_files_except(os.path.join(os.getcwd(), 'ephemeris'), output_file_name)
+            self.ephemeris_file_set.add(self.ephemeris_file_path)
             self.flag_create_file = False
             print("File already exists: {}".format(self.ephemeris_file_path))
+            # remote all the files that has the same id but different date
+            for file in self.ephemeris_file_set:
+                if selected_id in file and file != self.ephemeris_file_path:
+                    os.remove(file)
+                    print("Deleted file: {}".format(file))
+                    self.ephemeris_file_set.remove(file)
         else:
-            #TODO: delete all ephemeris files from a different day
-            print("horizons.py: Deleting all files in ephemeris folder")
-            myutils.remove_all_files_in_folder(os.path.join(os.getcwd(), 'ephemeris'))
+            # remove all the files that has the same id
+            for file in self.ephemeris_file_set:
+                if selected_id in file:
+                    os.remove(file)
+                    print("Deleted file: {}".format(file))
+                    self.ephemeris_file_set.remove(file)
+            self.ephemeris_file_set.add(self.ephemeris_file_path)
             self.flag_create_file = True
             print("Creating file: {}".format(self.ephemeris_file_path))
 
