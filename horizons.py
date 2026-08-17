@@ -23,13 +23,31 @@ class Horizons:
             'Rates': '5',
         }
         self.flag_create_file = False
-        self.horizons_url = 'https://ssd.jpl.nasa.gov/api/horizons.api'
+        self.horizons_url = ('https://ssd.jpl.nasa.gov/api/horizons.api')
         self.ephemeris_file_path = None
         self.ephemeris_file_set = set() # a set to keep track of existing ephemeris files
 
         #define Positions and Time
         self.Earth_id = '399'
         current_location = myutils.get_ip_location()
+
+        self.default_longitude = -95.07639  # Set your default longitude
+        self.default_latitude = 29.55889    # Set your default latitude
+        self.default_altitude = 9.00000     # Set your default altitude in meters
+
+        # Fallback to default location if API fails
+        if current_location is None:
+            import warnings
+            warnings.warn("Failed to get location from IP; using default coordinates ({}, {}, {})".format(self.default_longitude,
+                                                                                                          self.default_latitude,
+                                                                                                          self.default_altitude))
+            current_location = {
+                'longitude': self.default_longitude,  # Set your longitude
+                'latitude': self.default_latitude,    # Set your latitude
+                'altitude': self.default_altitude,     # Set your altitude in meters
+                'utc_offset': '-5'      # Set your UTC offset
+            }
+
         self.longitude = current_location['longitude'] #degrees
         self.latitude = current_location['latitude'] #degrees
         self.altitude = current_location['altitude'] #meters
@@ -40,13 +58,27 @@ class Horizons:
         self.step_size = '5m'
 
     def reinitialize(self):
-        self.current_location = myutils.get_ip_location()
-        self.longitude = self.current_location['longitude']
-        self.latitude = self.current_location['latitude']
-        self.altitude = self.current_location['altitude'] #meters
-        self.utc_offset = self.current_location['utc_offset']
+        current_location = myutils.get_ip_location()
+
+        # Fallback to default location if API fails
+        if current_location is None:
+            import warnings
+            warnings.warn("Failed to get location from IP; using default coordinates ({}, {}, {})".format(self.default_longitude, 
+                                                                                                          self.default_latitude, 
+                                                                                                          self.default_altitude))
+            current_location = {
+                'longitude': self.default_longitude,
+                'latitude': self.default_latitude,
+                'altitude': self.default_altitude,
+                'utc_offset': '-5'
+            }
+
+        self.longitude = current_location['longitude']
+        self.latitude = current_location['latitude']
+        self.altitude = current_location['altitude'] #meters
+        self.utc_offset = current_location['utc_offset']
         #self.altitude = 0.0 #meters
-        self.utc_offset = self.current_location['utc_offset']
+        self.utc_offset = current_location['utc_offset']
         self.today_date = datetime.today().strftime('%Y-%b-%d')
         self.start_time = self.today_date + ' UT' + self.utc_offset
         self.stop_time = (datetime.today() + timedelta(days=1)).strftime('%Y-%b-%d')
@@ -86,20 +118,46 @@ class Horizons:
             self.flag_create_file = True
             print("Creating file: {}".format(self.ephemeris_file_path))
 
-        #build url commands:
+        # ---------------------------------------------------------
+        # Request target position data from Horizons API:
+        # target position relative to oberver expressed in ICRF coordinate
+        # ---------------------------------------------------------
+        print("Requesting ephemeris data for target: {}".format(target_name))
         print("My longitude: {:.5f}".format(self.longitude))
         print("My latitude: {:.5f}".format(self.latitude))
         print("My altitude: {:.5f}".format(self.altitude))
-        self.horizons_url += "?format=json&EPHEM_TYPE=OBSERVER&OBJ_DATA=NO"
-        self.horizons_url += "&COMMAND='{}'&START_TIME='{}'&STOP_TIME='{}'&STEP_SIZE='{}'".format(selected_id, self.start_time, self.stop_time, self.step_size)
-        self.horizons_url += "&CENTER='coord @ {}'&SITE_COORD='{:.5f},{:.5f},{:.5f}'".format(self.Earth_id, self.longitude, self.latitude, self.altitude*1e-3) #note: altitude is in km
-        self.horizons_url += "&QUANTITIES='{},{}'".format(self.params_dict['Apparent AZ & EL'], self.params_dict['Rates'])
+
+        site_coord = ("{:.8f},{:.8f},{:.8f}".format(self.longitude, self.latitude, self.altitude*1e-3)) #note: altitude is in km
+        params = {'format': 'json',
+                  'EPHEM_TYPE': 'OBSERVER',
+                  'OBJ_DATA': 'NO',
+                  'COMMAND': selected_id,
+                  'START_TIME': f"'{self.start_time}'",
+                  'STOP_TIME': f"'{self.stop_time}'",
+                  'STEP_SIZE': f"'{self.step_size}'",
+                  'CENTER': 'coord@{}'.format(self.Earth_id),
+                  'SITE_COORD': f"'{site_coord}'",
+                  'OUT_UNITS': 'KM-S', # km and seconds
+                  'REF_SYSTEM': 'ICRF', # ICRF coordinate system
+                  # Important: ICRF equatorial plane instead of ecliptic plane, which is the default for Horizons
+                  'REF_PLANE': 'FRAME',
+                  'CSV_FORMAT': 'YES', # Return data in CSV format
+                  'TIME_TYPE': 'UT', # Use UT time
+                }
 
         #request data
-        response = requests.get(self.horizons_url)
+        print("[INFO] Requesting data from Horizons API with timeout=30s...")
+        print(f"[INFO] Using coordinates: lat={self.latitude}, lon={self.longitude}, alt={self.altitude}m")
+        try:
+            response = requests.get(self.horizons_url, params=params, timeout=30)
+            print("[INFO] Horizons API response received")
+        except requests.exceptions.Timeout:
+            print("[ERROR] Horizons API timeout after 30 seconds")
+            return
+        except requests.exceptions.RequestException as e:
+            print(f"[ERROR] Horizons API request failed: {e}")
+            return
 
-        # reset url
-        self.horizons_url = 'https://ssd.jpl.nasa.gov/api/horizons.api'
         try:
             data = json.loads(response.text)
         except ValueError:
@@ -115,13 +173,8 @@ class Horizons:
                 with open(self.ephemeris_file_path, 'w') as output_file:
                     output_file.write(data['result'])
                 print("Ephemeris file created!")
-
-        # If the request was invalid, extract error content and display it:
-        if (response.status_code == 400):
-          data = json.loads(response.text)
-          if "message" in data:
-            print("MESSAGE: {}".format(data["message"]))
-          else:
+        else:
+            print("Horizons HTTP error: {}".format(response.status_code))
             print(json.dumps(data, indent=2))
 
         # return target ephermeris valid date

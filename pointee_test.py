@@ -99,6 +99,19 @@ class PointeeApp(QMainWindow):
             self.group.addButton(btn)
             btn.clicked.connect(lambda _, target=target: self.target_button_on_click(target))
 
+        # Connect control buttons
+        self.button_Start.clicked.connect(self.on_start)
+        self.button_Pause.clicked.connect(self.on_pause)
+        self.button_Resume.clicked.connect(self.on_resume)
+        self.button_Stop.clicked.connect(self.on_stop)
+        self.button_MotorsOn_2.clicked.connect(self.on_motors_on)
+        self.button_MotorsOff_2.clicked.connect(self.on_motors_off)
+        self.ExitButton.clicked.connect(self.on_exit)
+
+        # Track pointing state
+        self.is_pointing_active = False
+        self.is_pointing_paused = False
+
     #===========================================================================
     # define update functions (fastest to slowest)
     def update_current_room_weather(self):
@@ -204,6 +217,93 @@ class PointeeApp(QMainWindow):
             # Graceful failure path (keep old target/timer running)
             print(f"[ERROR] Failed to initialize target '{target}': {e}")
 
+    def on_start(self):
+        """ Start pointing to selected target """
+        if self.pointing.current_target is None:
+            print("[GUI] No target selected. Please select a target first.")
+            return
+
+        if self.is_pointing_active:
+            print("[GUI] Pointing already active.")
+            return
+
+        print(f"[GUI] Starting to point to {self.pointing.current_target}")
+        self.is_pointing_active = True
+        self.is_pointing_paused = False
+
+        # Resume or start the timer
+        if hasattr(self, "timer_target_pointing") and self.timer_target_pointing is not None:
+            self.timer_target_pointing.start()
+        else:
+            # If timer doesn't exist, initialize target to create it
+            self.target_button_on_click(self.pointing.current_target)
+
+    def on_pause(self):
+        """ Pause the pointing loop """
+        if not self.is_pointing_active:
+            print("[GUI] Pointing is not active.")
+            return
+
+        print("[GUI] Pausing pointing...")
+        self.is_pointing_paused = True
+        if hasattr(self, "timer_target_pointing") and self.timer_target_pointing is not None:
+            self.timer_target_pointing.stop()
+
+    def on_resume(self):
+        """ Resume the paused pointing loop """
+        if not self.is_pointing_paused:
+            print("[GUI] Pointing is not paused.")
+            return
+
+        print("[GUI] Resuming pointing...")
+        self.is_pointing_paused = False
+        self.is_pointing_active = True
+        if hasattr(self, "timer_target_pointing") and self.timer_target_pointing is not None:
+            self.timer_target_pointing.start()
+
+    def on_stop(self):
+        """ Stop pointing and stop motors """
+        print("[GUI] Stopping pointing...")
+        self.is_pointing_active = False
+        self.is_pointing_paused = False
+
+        # Stop the pointing timer
+        if hasattr(self, "timer_target_pointing") and self.timer_target_pointing is not None:
+            self.timer_target_pointing.stop()
+
+        # Send motor stop command
+        try:
+            self.pointing.motor_az.stop_motor()
+            self.pointing.motor_el.stop_motor()
+            print("[GUI] Motors stopped.")
+        except Exception as e:
+            print(f"[WARN] Error stopping motors: {e}")
+
+    def on_motors_on(self):
+        """ Turn motors on """
+        print("[GUI] Turning motors on...")
+        try:
+            self.pointing.motor_az.turn_on_motor()
+            self.pointing.motor_el.turn_on_motor()
+            print("[GUI] Motors turned on.")
+        except Exception as e:
+            print(f"[ERROR] Failed to turn motors on: {e}")
+
+    def on_motors_off(self):
+        """ Turn motors off """
+        print("[GUI] Turning motors off...")
+        try:
+            self.pointing.motor_az.turn_off_motor()
+            self.pointing.motor_el.turn_off_motor()
+            print("[GUI] Motors turned off.")
+        except Exception as e:
+            print(f"[ERROR] Failed to turn motors off: {e}")
+
+    def on_exit(self):
+        """ Exit the application """
+        print("[GUI] Exit button pressed.")
+        self.close()
+
     def closeEvent(self, event):
         """ Override closeEvent to perform actions on exit """
         print("Closing the application...")
@@ -217,6 +317,8 @@ class PointeeApp(QMainWindow):
         # Stop timers if necessary
         self.timer_current_time.stop()
         self.timer_room_weather.stop()
+        if hasattr(self, "timer_target_pointing") and self.timer_target_pointing is not None:
+            self.timer_target_pointing.stop()
         # Hardware shutdown process
         self.pointing.shutdown()
 

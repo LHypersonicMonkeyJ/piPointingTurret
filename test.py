@@ -26,8 +26,8 @@ MOTOR_ANGLE_RESOLUTION = 0.4 # degree
 
 # Class Initializations
 horizons = Horizons()
-motor_az = LKTECH_Motor(can_id=0x0141, bitrate=250000, timeout=3, motor_model='MS4010-CAN_az') #timeout unit is ms
-motor_el = LKTECH_Motor(can_id=0x0142, bitrate=250000, timeout=3, motor_model='MS4010-CAN_el') #timeout unit is ms
+motor_az = LKTECH_Motor(can_id=0x0141, bitrate=250000, timeout=3, motor_tag='MS4010-CAN_az') #timeout unit is ms
+motor_el = LKTECH_Motor(can_id=0x0142, bitrate=250000, timeout=3, motor_tag='MS4010-CAN_el') #timeout unit is ms
 bmm150 = bmm150_I2C(I2C_BUS, BMM150_I2C_ADDRESS)
 bme280 = BME280(i2c_addr = BME280_I2C_ADDRESS)
 
@@ -92,7 +92,7 @@ while not azimuth_measurement_is_stable and len(azimuth_buffer) < buffer_limit:
     print("Device azimuth is: {}".format(device_azimuth))
     azimuth_buffer.append(device_azimuth)
     if len(azimuth_buffer) > window_size:
-        if myutils.is_steady_state(azimuth_buffer, window_size, threshold):
+        if myutils.is_steady_state(azimuth_buffer, window_size, threshold, 3):
             azimuth_measurement_is_stable = True
             print("Device azimuth is: {}".format(device_azimuth))
     time.sleep(0.2)

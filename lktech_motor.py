@@ -59,7 +59,7 @@ class LKTECH_Motor:
     #Utility functions
     ###############################################################
     def print_cmd(self, cmd, prefix=""):
-        hex_string = ' '.join(f'0x{x:02x}' for x in cmd)
+        hex_string = ' '.join(f'0x{x:02x}' for x in cmd) if cmd is not None else "None"
         print("{}: id: 0x{} cmd: {}".format(prefix, hex(self.can_id)[2:].zfill(4), hex_string))
         
     def motor_responded(self, flag_save_data=False):

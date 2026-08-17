@@ -14,8 +14,10 @@ def get_ip_location():
     positionstack_url += f"?access_key={api_key}&query={ip_address}"
     positionstack_url += f"&timezone_module=1"
 
+    # Try primary API (positionstack)
     response = requests.get(positionstack_url)
-    #print(response.json())
+    location_data = None
+
     if response.status_code == 200:
         data = response.json()
         if 'data' in data and data['data'] is not None:
@@ -29,14 +31,36 @@ def get_ip_location():
                 'utc_offset':response_data.get('timezone_module', 'Not Available').get('offset_string', 'Not Available'),
             }
         else:
-            location_data = None
-            warnings.warn(f"Error: no data found for ip address {ip_address}")
+            warnings.warn(f"Positionstack: no data found for ip address {ip_address}")
     else:
-        location_data = None
-        warnings.warn(f"Error: {response.status_code}")
+        warnings.warn(f"Positionstack API Error: {response.status_code}, trying backup API...")
+
+    # Try backup API (ipapi.co) if primary failed
+    if location_data is None:
+        try:
+            backup_url = f"https://ipapi.co/{ip_address}/json/"
+            response = requests.get(backup_url, timeout=5)
+            if response.status_code == 200:
+                data = response.json()
+                if 'latitude' in data and 'longitude' in data:
+                    location_data = {
+                        'city': data.get('city', 'Not Available'),
+                        'state': data.get('region', 'Not Available'),
+                        'country': data.get('country_name', 'Not Available'),
+                        'latitude': data.get('latitude', 'Not Available'),
+                        'longitude': data.get('longitude', 'Not Available'),
+                        'utc_offset': data.get('utc_offset', 'Not Available'),
+                    }
+                    print(f"[INFO] Using backup geolocation API (ipapi.co)")
+                else:
+                    warnings.warn(f"Backup API: no coordinates found")
+            else:
+                warnings.warn(f"Backup API Error: {response.status_code}")
+        except Exception as e:
+            warnings.warn(f"Backup API exception: {e}")
 
     # get altitude from longitude and latitude
-    if location_data['longitude'] != 'Not Available' and location_data['latitude'] != 'Not Available':
+    if location_data is not None and location_data['longitude'] != 'Not Available' and location_data['latitude'] != 'Not Available':
         openelevation_url += f"?locations={location_data['latitude']},{location_data['longitude']}"
         response = requests.get(openelevation_url)
         if response.status_code == 200:
@@ -44,7 +68,7 @@ def get_ip_location():
             location_data['altitude'] = data['results'][0]['elevation']
         else:
             location_data['altitude'] = 'Not Available'
-            warnings.warn(f"Error: {response.status_code}")
+            warnings.warn(f"Error getting altitude: {response.status_code}")
 
     return location_data
 

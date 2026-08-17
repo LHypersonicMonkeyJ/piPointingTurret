@@ -251,8 +251,8 @@ class pointing():
             target_valid_date = self.horizons.request_ephemeris(target)
             self.existing_target_valid_date[target] = target_valid_date
 
-        # Initialize az_el object
-        self.az_el = AzEl(self.horizons.ephemeris_file_path)
+        # Initialize az_el object with observer coordinates
+        self.az_el = AzEl(self.horizons.ephemeris_file_path, self.latitude, self.longitude)
 
         # Compute pointing loop delta time
         return self.compute_pointing_loop()
