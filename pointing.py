@@ -251,6 +251,13 @@ class pointing():
             target_valid_date = self.horizons.request_ephemeris(target)
             self.existing_target_valid_date[target] = target_valid_date
 
+        # request_ephemeris returns None (without setting ephemeris_file_path) on an
+        # invalid target, a network failure, or a bad response - bail out cleanly
+        # instead of crashing inside AzEl's file open with an opaque TypeError.
+        if self.horizons.ephemeris_file_path is None:
+            warnings.warn("Failed to obtain ephemeris for target: {}".format(target))
+            return False
+
         # Initialize az_el object with observer coordinates
         self.az_el = AzEl(self.horizons.ephemeris_file_path, self.latitude, self.longitude)
 

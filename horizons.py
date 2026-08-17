@@ -55,6 +55,7 @@ class Horizons:
         self.today_date = datetime.today().strftime('%Y-%b-%d')
         self.start_time = f"{self.today_date} UT{self.utc_offset}"
         self.stop_time  = (datetime.today() + timedelta(days=1)).strftime('%Y-%b-%d')
+        self.step_size = '5m'
 
     def reinitialize(self):
         current_location = myutils.get_ip_location()
@@ -172,7 +173,7 @@ class Horizons:
     # ---------- public: request ephemeris with dynamic step ----------
     def request_ephemeris(self, target_name):
         #get the selected id
-        target_key = target_name.lower().capitalize()
+        target_key = target_name.lower()
         print("target_key: {}".format(target_key))
         if target_key in self.id_dict:
             selected_id = self.id_dict[target_key]

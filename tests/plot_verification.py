@@ -6,7 +6,7 @@ el_astropy_deg, az_diff_deg, el_diff_deg, separation_deg) and saves plots
 to artifacts/.
 
 Usage:
-    python3 plot_verification.py [verified_csv]
+    python3 tests/plot_verification.py [verified_csv]
 """
 import sys
 import os
@@ -18,7 +18,9 @@ matplotlib.use('Agg')  # headless-safe, no display needed
 import matplotlib.pyplot as plt
 
 MOTOR_ANGLE_RESOLUTION_DEG = 0.4
-ARTIFACTS_DIR = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'artifacts')
+# artifacts/ lives at repo root, not tests/artifacts/
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+ARTIFACTS_DIR = os.path.join(REPO_ROOT, 'artifacts')
 
 
 def main():

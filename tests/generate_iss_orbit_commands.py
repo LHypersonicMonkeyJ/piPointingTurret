@@ -11,7 +11,7 @@ does NOT touch ephemeris/id-125544_<date>.txt, which is the live cache
 pointing.py uses during normal operation.
 
 Usage:
-    python3 generate_iss_orbit_commands.py [output_csv]
+    python3 tests/generate_iss_orbit_commands.py [output_csv]
 """
 import os
 import sys
@@ -20,7 +20,8 @@ import requests
 from datetime import datetime, timedelta, timezone
 import csv
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+REPO_ROOT = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(REPO_ROOT)
 from horizons import Horizons
 from az_el import AzEl
 
@@ -32,8 +33,9 @@ FETCH_MARGIN_MIN = 10  # extra time on each end so interpolation never runs out 
 # steps) produces fractional-minute timestamps that silently fail to parse.
 STEP_SIZE = "'1m'"
 
-EPHEMERIS_PATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                               'ephemeris', 'test_iss_one_orbit.txt')
+# Written into the repo-root ephemeris/ folder (same place pointing.py's live
+# cache lives, already gitignored via `ephemeris/*`) rather than tests/ephemeris/.
+EPHEMERIS_PATH = os.path.join(REPO_ROOT, 'ephemeris', 'test_iss_one_orbit.txt')
 SAMPLE_INTERVAL_SEC = 15  # how often to sample AzEl for the output command list
 
 

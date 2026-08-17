@@ -11,7 +11,7 @@ exact same RA/Dec input so the comparison isolates the coordinate-transform
 math rather than the ephemeris data itself.
 
 Usage:
-    python3 verify_iss_pointing.py [input_csv] [latitude] [longitude] [altitude_m]
+    python3 tests/verify_iss_pointing.py [input_csv] [latitude] [longitude] [altitude_m]
 
 If lat/lon/alt are omitted, it re-derives them the same way pointing.py
 does (IP geolocation via Horizons, with the same hardcoded fallback).
@@ -26,7 +26,7 @@ import astropy.units as u
 from astropy.coordinates import ICRS, AltAz, EarthLocation, SkyCoord
 from astropy.time import Time
 
-sys.path.append(os.path.dirname(os.path.realpath(__file__)))
+sys.path.append(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 # Motor angular resolution from lktech_motor.py - used as the pass/fail
 # threshold, since sub-resolution pointing error is not physically visible.
